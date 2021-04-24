@@ -1,0 +1,16 @@
+{
+    "listeners": {
+        "*:36963": {
+            "pass": "applications/control"
+        }
+    },
+
+    "applications": {
+        "control": {
+            "type": "external",
+            "working_directory": "/www/control",
+            "executable": "index.js"
+        }
+    }
+}
+
