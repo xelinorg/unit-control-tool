@@ -9,8 +9,11 @@
         "control": {
             "type": "external",
             "working_directory": "/www/control",
-            "executable": "index.js"
+            "executable": "index.js",
+            "environment": {
+              "APPGEN": "0"
+            },
+            "user": "root"
         }
     }
 }
-

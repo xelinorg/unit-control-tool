@@ -12,7 +12,7 @@ const { exec } = require('child_process');
 // start config constants
 const port = process.env.UCT_MODE !== 'unit-http' && process.env.UCT_PORT ? process.env.UCT_PORT : -1 ;
 const rootDir = '/tmp';
-const deployResource = '/deploy/';
+const deployResource = '/control/deploy/';
 // end config constants
 
 
@@ -54,7 +54,7 @@ const getDisFun = (disFunLocation, cb) => {
 const persistDisFun = (outLocation, disFunStream, cb) => {
 
   return fs.writeFile(rootDir.concat('/', outLocation), disFunStream, (err) => {
-    if (err) return console.log(err);
+    if (err) return cb(err);
     return cb(null);
   });
 
@@ -62,7 +62,7 @@ const persistDisFun = (outLocation, disFunStream, cb) => {
 // end persist function on filesystem
 
 // start deploy
-const deployDisFun = cb => {
+const deployDisFun = (filename, cb) => {
   const space = ' ';
   const curl = 'curl -s';
   const unixSocket = '--unix-socket /var/run/control.unit.sock';
@@ -86,7 +86,7 @@ const srv = hunit.createServer((req, res) => {
     return getDisFun(reqPath.replace(deployResource, ''), (getErr, getRes) => {
       const filename = getPath(reqPath).replace(/^(\/)/, '').slice(reqPath.lastIndexOf('/'), reqPath.length );
       return persistDisFun(filename, getRes, (persistErr, persistRes) => {
-        return deployDisFun((depErr, depRes) => {
+        return deployDisFun(filename, (depErr, depRes) => {
           if (depErr) {
             res.writeHead(500, {"Content-Type": "text/plain"});
             return res.end(depErr);
