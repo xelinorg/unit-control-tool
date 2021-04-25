@@ -5,6 +5,7 @@ const hunit = process.env.UCT_MODE ? require(process.env.UCT_MODE) : require('ht
 const https = require('https');
 const url = require("url");
 const fs = require('fs');
+const { exec } = require('child_process');
 // end libs
 
 
@@ -37,6 +38,10 @@ const getDisFun = (disFunLocation, cb) => {
     response.on('end', () => {
       cb(null, str);
     });
+
+    response.on('error', resErr => {
+      cb(resErr);
+    });
   }
 
   const req = https.request(options, callback);
@@ -56,21 +61,44 @@ const persistDisFun = (outLocation, disFunStream, cb) => {
 };
 // end persist function on filesystem
 
+// start deploy
+const deployDisFun = cb => {
+  const space = ' ';
+  const curl = 'curl -s';
+  const unixSocket = '--unix-socket /var/run/control.unit.sock';
+  const host = 'http://localhost';
+  const showUnit = curl.concat(space, unixSocket, space, host);
+  exec(showUnit, (error, stdout, stderr) => {
+    if (error) return cb(error);
+    if (stderr) return cb(stderr);
+
+    return cb(null, stdout)
+
+  });
+};
+// end deploy
+
 // start main
 const srv = hunit.createServer((req, res) => {
   const reqPath = url.parse(req.url).pathname;
 
   if (req.method.toUpperCase() === 'POST' && reqPath.indexOf(deployResource) === 0 && deployResource.length < reqPath.length) {
-    getDisFun(reqPath.replace(deployResource, ''), (getErr, getRes) => {
+    return getDisFun(reqPath.replace(deployResource, ''), (getErr, getRes) => {
       const filename = getPath(reqPath).replace(/^(\/)/, '').slice(reqPath.lastIndexOf('/'), reqPath.length );
-      persistDisFun(filename, getRes, (persistErr, persistRes) => {
-        res.writeHead(200, {"Content-Type": "text/plain"});
-        res.end("Hello, Node.js on Unit has been deployed!");
+      return persistDisFun(filename, getRes, (persistErr, persistRes) => {
+        return deployDisFun((depErr, depRes) => {
+          if (depErr) {
+            res.writeHead(500, {"Content-Type": "text/plain"});
+            return res.end(depErr);
+          }
+          res.writeHead(200, {"Content-Type": "text/plain"});
+          return res.end("Hello, Node.js on Unit has been deployed!".concat('\n', depRes));
+        });
       });
     })
   } else {
     res.writeHead(200, {"Content-Type": "text/plain"});
-    res.end("Hello, Node.js on Unit!");
+    return res.end("Hello, Node.js on Unit!");
   }
 
 })
@@ -84,5 +112,3 @@ if (port > 1024) {
 }
 
 console.log(port > 1024 ? 'listening on port '.concat(port) : 'expose your desired port on unit config');
-
-
