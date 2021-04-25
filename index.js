@@ -13,33 +13,62 @@ const { exec } = require('child_process');
 const port = process.env.UCT_MODE !== 'unit-http' && process.env.UCT_PORT ? process.env.UCT_PORT : -1 ;
 const rootDir = '/tmp';
 const deployResource = '/control/deploy/';
+
+const helloMsg = "Hello, Node.js on Unit!";
+const successMsg = "has been deployed!";
+const httpMsg = 'listening on port '.concat(port);
+const unitHttpMsg = 'expose your desired port on unit config';
+
+const fslash = '/';
+const space = ' ';
+const nochar = '';
+const exclamMark = '!';
+const newLine = '\n';
+const fslashReg = /^(\/)/;
+
+const port1024 = 1024;
+const twoHundred = 200;
+const fiveHundred = 500;
+const contetTypeTxtPlain = {"Content-Type": "text/plain"};
+const method = {
+  POST: 'POST'
+};
+const event = {
+  data: 'data',
+  end: 'end',
+  error: 'error'
+}
+
+const curl = 'curl -s';
+const unixSocket = '--unix-socket /var/run/control.unit.sock';
+const host = 'http://localhost';
 // end config constants
 
 
 // start config function
-const getPath = (loc) => loc.slice(loc.indexOf('/'));
-const getHost = (loc) => loc.replace(getPath(loc), '').replace('/', '');
+const getPath = (loc) => loc.slice(loc.indexOf(fslash));
+const getHost = (loc) => loc.replace(getPath(loc), nochar).replace(fslash, nochar);
 // end config function
 
 
 // start get function from network
-const getDisFun = (disFunLocation, cb) => {
+const getDisFun = (disFunLoc, cb) => {
   const options = {
-    host: getHost(disFunLocation),
-    path: getPath(disFunLocation),
+    host: getHost(disFunLoc),
+    path: getPath(disFunLoc),
   };
 
   const callback = (response) => {
-    let str = ''
-    response.on('data', (chunk) => {
+    let str = nochar;
+    response.on(event.data, (chunk) => {
       str += chunk;
     });
 
-    response.on('end', () => {
+    response.on(event.end, () => {
       cb(null, str);
     });
 
-    response.on('error', resErr => {
+    response.on(event.error, resErr => {
       cb(resErr);
     });
   }
@@ -51,9 +80,9 @@ const getDisFun = (disFunLocation, cb) => {
 
 
 // start persist function on filesystem
-const persistDisFun = (outLocation, disFunStream, cb) => {
+const persistDisFun = (outLoc, disFunStream, cb) => {
 
-  return fs.writeFile(rootDir.concat('/', outLocation), disFunStream, (err) => {
+  return fs.writeFile(rootDir.concat(fslash, outLoc), disFunStream, (err) => {
     if (err) return cb(err);
     return cb(null);
   });
@@ -63,10 +92,6 @@ const persistDisFun = (outLocation, disFunStream, cb) => {
 
 // start deploy
 const deployDisFun = (filename, cb) => {
-  const space = ' ';
-  const curl = 'curl -s';
-  const unixSocket = '--unix-socket /var/run/control.unit.sock';
-  const host = 'http://localhost';
   const showUnit = curl.concat(space, unixSocket, space, host);
   exec(showUnit, (error, stdout, stderr) => {
     if (error) return cb(error);
@@ -82,33 +107,33 @@ const deployDisFun = (filename, cb) => {
 const srv = hunit.createServer((req, res) => {
   const reqPath = url.parse(req.url).pathname;
 
-  if (req.method.toUpperCase() === 'POST' && reqPath.indexOf(deployResource) === 0 && deployResource.length < reqPath.length) {
-    return getDisFun(reqPath.replace(deployResource, ''), (getErr, getRes) => {
-      const filename = getPath(reqPath).replace(/^(\/)/, '').slice(reqPath.lastIndexOf('/'), reqPath.length );
+  if (req.method.toUpperCase() === method.POST && reqPath.indexOf(deployResource) === 0 && deployResource.length < reqPath.length) {
+    return getDisFun(reqPath.replace(deployResource, nochar), (getErr, getRes) => {
+      const filename = getPath(reqPath).replace(fslashReg, nochar).slice(reqPath.lastIndexOf(fslash), reqPath.length );
       return persistDisFun(filename, getRes, (persistErr, persistRes) => {
         return deployDisFun(filename, (depErr, depRes) => {
           if (depErr) {
-            res.writeHead(500, {"Content-Type": "text/plain"});
+            res.writeHead(fiveHundred, contetTypeTxtPlain);
             return res.end(depErr);
           }
-          res.writeHead(200, {"Content-Type": "text/plain"});
-          return res.end("Hello, Node.js on Unit has been deployed!".concat('\n', depRes));
+          res.writeHead(twoHundred, contetTypeTxtPlain);
+          return res.end(helloMsg.replace(exclamMark).concat(space, successMsg, newLine, depRes));
         });
       });
     })
   } else {
-    res.writeHead(200, {"Content-Type": "text/plain"});
-    return res.end("Hello, Node.js on Unit!");
+    res.writeHead(twoHundred, contetTypeTxtPlain);
+    return res.end(helloMsg);
   }
 
 })
 // end main
 
 // listen
-if (port > 1024) {
+if (port > port1024) {
   srv.listen(port)
 } else {
   srv.listen()
 }
 
-console.log(port > 1024 ? 'listening on port '.concat(port) : 'expose your desired port on unit config');
+console.log(port > port1024 ? httpMsg : unitHttpMsg);
