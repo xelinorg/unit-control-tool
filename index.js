@@ -46,8 +46,16 @@ const host = 'http://localhost';
 
 
 // start config function
-const getPath = (loc) => loc.slice(loc.indexOf(fslash));
-const getHost = (loc) => loc.replace(getPath(loc), nochar).replace(fslash, nochar);
+const getPath = loc => loc.slice(loc.indexOf(fslash));
+const getHost = loc => loc.replace(getPath(loc), nochar).replace(fslash, nochar);
+const getFilename = reqPath =>
+  getPath(reqPath)
+  .replace(fslashReg, nochar)
+  .slice(reqPath.lastIndexOf(fslash), reqPath.length );
+const isLegitRequest = (reqMethod, reqPath) =>
+  reqMethod.toUpperCase() === method.POST &&
+  reqPath.indexOf(deployResource) === 0 &&
+  deployResource.length < reqPath.length
 // end config function
 
 
@@ -107,9 +115,9 @@ const deployDisFun = (filename, cb) => {
 const srv = hunit.createServer((req, res) => {
   const reqPath = url.parse(req.url).pathname;
 
-  if (req.method.toUpperCase() === method.POST && reqPath.indexOf(deployResource) === 0 && deployResource.length < reqPath.length) {
+  if (isLegitRequest(req.method, reqPath)) {
     return getDisFun(reqPath.replace(deployResource, nochar), (getErr, getRes) => {
-      const filename = getPath(reqPath).replace(fslashReg, nochar).slice(reqPath.lastIndexOf(fslash), reqPath.length );
+      const filename = getFilename(reqPath);
       return persistDisFun(filename, getRes, (persistErr, persistRes) => {
         return deployDisFun(filename, (depErr, depRes) => {
           if (depErr) {
