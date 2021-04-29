@@ -1,0 +1,4 @@
+# make control app reload
+curl -X PUT -d '{"APPGEN":"'$(date +"%s")'"}' \
+  --unix-socket /var/run/control.unit.sock \
+  http://localhost/config/applications/control/environment

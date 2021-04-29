@@ -18,20 +18,24 @@ const helloMsg = "Hello, Node.js on Unit!";
 const successMsg = "has been deployed!";
 const httpMsg = 'listening on port '.concat(port);
 const unitHttpMsg = 'expose your desired port on unit config';
+const contentLengthHeader = 'Content-Length';
+const appgenHeader = 'X-APPGEN';
 
 const fslash = '/';
 const space = ' ';
 const nochar = '';
 const exclamMark = '!';
+const semico = ';';
 const newLine = '\n';
-const fslashReg = /^(\/)/;
+const fslashRe = /^(\/)/;
 
 const port1024 = 1024;
 const twoHundred = 200;
 const fiveHundred = 500;
 const contetTypeTxtPlain = {"Content-Type": "text/plain"};
 const method = {
-  POST: 'POST'
+  POST: 'POST',
+  HEAD: 'HEAD'
 };
 const event = {
   data: 'data',
@@ -50,12 +54,13 @@ const getPath = loc => loc.slice(loc.indexOf(fslash));
 const getHost = loc => loc.replace(getPath(loc), nochar).replace(fslash, nochar);
 const getFilename = reqPath =>
   getPath(reqPath)
-  .replace(fslashReg, nochar)
+  .replace(fslashRe, nochar)
   .slice(reqPath.lastIndexOf(fslash), reqPath.length );
-const isLegitRequest = (reqMethod, reqPath) =>
+const isDeployRequest = (reqMethod, reqPath) =>
   reqMethod.toUpperCase() === method.POST &&
   reqPath.indexOf(deployResource) === 0 &&
   deployResource.length < reqPath.length
+const isInfoRequest = reqMethod => reqMethod.toUpperCase() === method.HEAD
 // end config function
 
 
@@ -73,11 +78,11 @@ const getDisFun = (disFunLoc, cb) => {
     });
 
     response.on(event.end, () => {
-      cb(null, str);
+      return cb(null, str);
     });
 
     response.on(event.error, resErr => {
-      cb(resErr);
+      return cb(resErr);
     });
   }
 
@@ -115,10 +120,25 @@ const deployDisFun = (filename, cb) => {
 const srv = hunit.createServer((req, res) => {
   const reqPath = url.parse(req.url).pathname;
 
-  if (isLegitRequest(req.method, reqPath)) {
+  if (isInfoRequest(req.method)) {
+    res.setHeader(appgenHeader, process.env.APPGEN)
+    res.setHeader(contentLengthHeader, 0)
+    res.writeHead(twoHundred, contetTypeTxtPlain);
+    return res.end();
+  }
+
+  if (isDeployRequest(req.method, reqPath)) {
     return getDisFun(reqPath.replace(deployResource, nochar), (getErr, getRes) => {
+      if (getErr) {
+        res.writeHead(fiveHundred, contetTypeTxtPlain);
+        return res.end(getErr);
+      }
       const filename = getFilename(reqPath);
       return persistDisFun(filename, getRes, (persistErr, persistRes) => {
+        if (persistErr) {
+          res.writeHead(fiveHundred, contetTypeTxtPlain);
+          return res.end(persistErr);
+        }
         return deployDisFun(filename, (depErr, depRes) => {
           if (depErr) {
             res.writeHead(fiveHundred, contetTypeTxtPlain);
@@ -133,15 +153,14 @@ const srv = hunit.createServer((req, res) => {
     res.writeHead(twoHundred, contetTypeTxtPlain);
     return res.end(helloMsg);
   }
-
-})
+});
 // end main
 
 // listen
 if (port > port1024) {
-  srv.listen(port)
+  srv.listen(port);
 } else {
-  srv.listen()
+  srv.listen();
 }
 
 console.log(port > port1024 ? httpMsg : unitHttpMsg);

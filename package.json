@@ -1,6 +1,6 @@
 {
-  "name": "unit-control",
-  "version": "1.0.0",
+  "name": "unit-control-tool",
+  "version": "0.1.0",
   "main": "index.js",
   "dependencies": {
     "unit-http": "^1.23.0"
