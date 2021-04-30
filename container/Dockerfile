@@ -7,7 +7,7 @@ COPY unit-control-tool/* /www/control/
 
 WORKDIR /www/control
 
-RUN npm install
+RUN npm install --only=production
 
 WORKDIR /www
 
