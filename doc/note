@@ -1,8 +1,18 @@
-# get root
+# curl get root
 curl --unix-socket /var/run/control.unit.sock \
   http://localhost
 
-# make control app reload
+# curl make control app reload
 curl -X PUT -d '{"APPGEN":"'$(date +"%s")'"}' \
   --unix-socket /var/run/control.unit.sock \
   http://localhost/config/applications/control/environment
+
+
+# docker build
+docker build --tag=unit-control-tool .
+
+# docker run
+docker run -d \
+  --mount type=bind,src="$(pwd)/config.json",dst=/docker-entrypoint.d/config.json \
+  -p 36936-36963:36936-36963 \
+  --env UCT_MODE=unit-http  unit-control-tool
