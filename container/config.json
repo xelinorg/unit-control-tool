@@ -1,17 +1,17 @@
 {
     "listeners": {
         "*:36963": {
-            "pass": "applications/control"
+            "pass": "applications/unit-control-tool"
         }
     },
 
     "applications": {
-        "control": {
+        "unit-control-tool": {
             "type": "external",
-            "working_directory": "/www/control",
+            "working_directory": "/www/unit-control-tool",
             "executable": "index.js",
             "environment": {
-              "APPGEN": "0"
+              "UCT_APPGEN": "0"
             },
             "user": "root"
         }
